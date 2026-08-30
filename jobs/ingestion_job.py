@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # =============================================================================
 # jobs/ingestion_job.py
 #
@@ -49,10 +53,10 @@ from pymongo.errors import PyMongoError
 # --------------------------------------------------------------------------- #
 # Carga de configuração externa (nunca hardcoded no corpo do código — R1)
 # --------------------------------------------------------------------------- #
-with open("config/pipeline_config.yaml", "r", encoding="utf-8") as f:
+with open("/Workspace/Users/daviblfarias@gmail.com/T3-DE-INGESTAO/config/pipeline_config.yaml", "r", encoding="utf-8") as f:
     CFG = yaml.safe_load(f)
 
-with open("config/collections.json", "r", encoding="utf-8") as f:
+with open("/Workspace/Users/daviblfarias@gmail.com/T3-DE-INGESTAO/config/collections.json", "r", encoding="utf-8") as f:
     COLLECTIONS_CFG = json.load(f)
 
 CATALOG = CFG["catalog"]
@@ -74,6 +78,23 @@ notifier = TelegramNotifier(
     chat_id_key=CFG["telegram"]["chat_id_key"],
     enabled=CFG["telegram"].get("enabled", True),
 )
+
+# COMMAND ----------
+
+# DBTITLE 1,Setup landing schema and volume
+# --------------------------------------------------------------------------- #
+# Setup: cria o schema landing e o volume mflix se não existirem
+# --------------------------------------------------------------------------- #
+schema_landing = f"{CATALOG}.landing"
+volume_name = "mflix"
+
+print(f"Verificando/criando schema e volume...")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {schema_landing}")
+print(f"  ✓ schema {schema_landing} disponível")
+
+spark.sql(f"CREATE VOLUME IF NOT EXISTS {schema_landing}.{volume_name}")
+print(f"  ✓ volume {schema_landing}.{volume_name} disponível")
+print(f"  Landing path: {LANDING_VOLUME}")
 
 # COMMAND ----------
 
@@ -329,15 +350,15 @@ for cfg_colecao in COLLECTIONS_CFG:
         collection=collection,
         stage="extract",
         load_type=load_mode,
-        watermark_inicial=watermark_inicial,
-        watermark_final=watermark_final,
+        watermark_inicial=watermark_inicial if watermark_inicial is not None else "",
+        watermark_final=watermark_final if watermark_final is not None else "",
         qtd_lida_origem=qtd_lida,
         qtd_gravada_destino=qtd_lida,  # nesta fase, "destino" = arquivos na Landing
         start_time=start_time,
         end_time=end_time,
         duracao_seg=(end_time - start_time).total_seconds(),
         status=status,
-        mensagem_erro=mensagem_erro,
+        mensagem_erro=mensagem_erro if mensagem_erro is not None else "",
     )
 
     resultados.append({
@@ -368,4 +389,5 @@ notifier.notify_run_summary(
 falhas = [r for r in resultados if r["status"] == "FAILED"]
 if falhas:
     # Task do Job falha de verdade -> Databricks Workflows aciona o retry/alerta nativo também
-    raise RuntimeError(f"Extração falhou para: {[r['collection'] for r in falhas]}")
+    erros_detalhados = "\n".join([f"  - {r['collection']}: {r['mensagem_erro']}" for r in falhas])
+    raise RuntimeError(f"Extração falhou para {len(falhas)} coleção(ões):\n{erros_detalhados}")

@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # =============================================================================
 # jobs/00_create_control_tables.py
 #
@@ -19,7 +23,7 @@
 
 import yaml
 
-with open("config/pipeline_config.yaml", "r", encoding="utf-8") as f:
+with open("/Workspace/Users/daviblfarias@gmail.com/T3-DE-INGESTAO/config/pipeline_config.yaml", "r", encoding="utf-8") as f:
     CFG = yaml.safe_load(f)
 
 CATALOG = CFG["catalog"]
@@ -29,6 +33,7 @@ print(f"catalog={CATALOG} | bronze_schema={BRONZE_SCHEMA}")
 
 # COMMAND ----------
 
+spark.sql(f"CREATE CATALOG IF NOT EXISTS {CATALOG}")
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{BRONZE_SCHEMA}")
 
 # COMMAND ----------

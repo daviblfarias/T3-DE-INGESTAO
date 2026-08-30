@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # =============================================================================
 # jobs/bronze_job.py
 #
@@ -47,10 +51,10 @@ from pyspark.sql import functions as F
 # --------------------------------------------------------------------------- #
 # Carga de configuração externa (nunca hardcoded no corpo do código — R1)
 # --------------------------------------------------------------------------- #
-with open("config/pipeline_config.yaml", "r", encoding="utf-8") as f:
+with open("/Workspace/Users/daviblfarias@gmail.com/T3-DE-INGESTAO/config/pipeline_config.yaml", "r", encoding="utf-8") as f:
     CFG = yaml.safe_load(f)
 
-with open("config/collections.json", "r", encoding="utf-8") as f:
+with open("/Workspace/Users/daviblfarias@gmail.com/T3-DE-INGESTAO/config/collections.json", "r", encoding="utf-8") as f:
     COLLECTIONS_CFG = json.load(f)
 
 CATALOG = CFG["catalog"]
@@ -215,15 +219,15 @@ for colecao_cfg in COLLECTIONS_CFG:
         collection=collection,
         stage="bronze_load",
         load_type=load_type,
-        watermark_inicial=None,
-        watermark_final=None,
+        watermark_inicial="",
+        watermark_final="",
         qtd_lida_origem=qtd_origem,
         qtd_gravada_destino=qtd_destino,
         start_time=start_time,
         end_time=end_time,
         duracao_seg=(end_time - start_time).total_seconds(),
         status=status,
-        mensagem_erro=mensagem_erro,
+        mensagem_erro=mensagem_erro if mensagem_erro is not None else "",
     )
 
     resultados.append({
