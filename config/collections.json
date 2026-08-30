@@ -1,0 +1,49 @@
+[
+  {
+    "collection": "movies",
+    "load_mode": "incremental",
+    "watermark_field": "lastupdated",
+    "watermark_type": "string_lexicographic",
+    "_watermark_note": "lastupdated é STRING 'YYYY-MM-DD HH:MM:SS.nnnnnnnnn' (ver docs/SAMPLE_MFLIX.md) — comparação lexicográfica válida nesse formato.",
+    "exclude_fields": ["fullplot", "poster"],
+    "_exclude_note": "campos largos sem valor analítico direto na Bronze; documentar decisão no README."
+  },
+  {
+    "collection": "comments",
+    "load_mode": "incremental",
+    "watermark_field": "date",
+    "watermark_type": "isodate",
+    "exclude_fields": []
+  },
+  {
+    "collection": "users",
+    "load_mode": "full",
+    "watermark_field": null,
+    "watermark_type": null,
+    "exclude_fields": ["password"],
+    "_exclude_note": "hash bcrypt sem valor analítico — exclusão obrigatória (docs/SAMPLE_MFLIX.md)."
+  },
+  {
+    "collection": "theaters",
+    "load_mode": "full",
+    "watermark_field": null,
+    "watermark_type": null,
+    "exclude_fields": []
+  },
+  {
+    "collection": "sessions",
+    "load_mode": "full",
+    "watermark_field": null,
+    "watermark_type": null,
+    "exclude_fields": ["jwt"],
+    "_exclude_note": "token JWT ativo — exclusão obrigatória; coleção pode estar vazia, tratar count=0 sem quebrar."
+  },
+  {
+    "collection": "embedded_movies",
+    "load_mode": "full",
+    "watermark_field": null,
+    "watermark_type": null,
+    "exclude_fields": ["plot_embedding"],
+    "_exclude_note": "vetor de ~1536 floats por doc (~12KB); exclusão obrigatória (docs/SAMPLE_MFLIX.md)."
+  }
+]

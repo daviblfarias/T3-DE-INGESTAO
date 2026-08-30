@@ -1,0 +1,48 @@
+# =============================================================================
+# config/pipeline_config.yaml
+# Configuração geral da pipeline de ingestão sample_mflix.
+# NUNCA colocar credenciais aqui — apenas nomes de scope/key do Databricks Secrets.
+# =============================================================================
+
+# Ajuste para o catalog do seu workspace (Unity Catalog)
+catalog: "workspace_t3"
+
+# Origem
+mongo:
+  database: "sample_mflix"
+  secret_scope: "conn-db"                 # scope criado pelo notebook create-secret
+  secret_key: "cnn-mongodb-sampleflix"    # key dentro do scope, não a URI em si
+  batch_size: 5000                        # tamanho do batch do cursor pymongo (R2 - leitura paginada)
+  server_selection_timeout_ms: 15000
+  socket_timeout_ms: 300000
+
+# Landing (arquivos brutos, consumidos depois pelo Autoloader)
+landing:
+  volume_path: "/Volumes/{catalog}/landing/mflix"
+  # quantidade de documentos por arquivo NDJSON gravado na landing.
+  # Evita 1 arquivo por documento (small files) sem materializar a coleção inteira em memória.
+  docs_per_file: 2000
+
+# Bronze / Control (usados na Etapa 2, já declarados aqui para manter config centralizada)
+bronze:
+  schema: "bronze"
+
+control:
+  ingestion_log_table: "{catalog}.bronze.control_ingestion_log"
+  watermark_table: "{catalog}.bronze.control_watermark"
+
+# Resiliência (R2 - retry com backoff em falhas de rede da origem)
+resilience:
+  max_retries: 4
+  backoff_base_seconds: 2      # backoff exponencial: 2, 4, 8, 16s
+
+# Reconciliação (R8) — limiar de divergência aceitável entre contagem lida x contagem gravada
+reconciliation:
+  max_diff_pct: 0.5   # execução acima disso deve virar status PARTIAL
+
+# Pipeline Sentinel — notificação via Telegram (Fase E)
+telegram:
+  enabled: true
+  secret_scope: "conn-db"          # mesmo scope usado pelo Mongo
+  token_key: "telegram-bot-token"
+  chat_id_key: "telegram-chat-id"
